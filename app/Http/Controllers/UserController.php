@@ -8,56 +8,61 @@ use Illuminate\Support\Facades\Hash;
 
 class UserController extends Controller
 {
-    public function index()
-    {
-        $user = UserModel::all();
+    public function index(){
+        $user = UserModel::with('level')->get();
         return view('user', ['data' => $user]);
     }
 
-    public function tambah(){
-        return view('user_tambah');
-    }
+    // public function index()
+    // {
+    //     $user = UserModel::all();
+    //     return view('user', ['data' => $user]);
+    // }
 
-    public function tambah_simpan(Request $request){
-        UserModel::create([
-            'username' => $request->username,
-            'nama_lengkap' => $request->nama_lengkap,
-            'password' => Hash::make('$request->password'),
-            'level_id' => $request->level_id
-        ]);
-        return redirect('/user');
-    }
+//     public function tambah(){
+//         return view('user_tambah');
+//     }
 
-    public function ubah($id){
-        $user = UserModel::find($id);
-        return view('user_ubah', ['data' => $user]);
-    }
+//     public function tambah_simpan(Request $request){
+//         UserModel::create([
+//             'username' => $request->username,
+//             'nama_lengkap' => $request->nama_lengkap,
+//             'password' => Hash::make('$request->password'),
+//             'level_id' => $request->level_id
+//         ]);
+//         return redirect('/user');
+//     }
 
-    public function ubah_simpan($id, Request $request)
-    {
-    $user = UserModel::find($id);
+//     public function ubah($id){
+//         $user = UserModel::find($id);
+//         return view('user_ubah', ['data' => $user]);
+//     }
 
-    $user->username = $request->username;
-    $user->nama_lengkap = $request->nama_lengkap;
-    $user->password = Hash::make('$request->password');
-    $user->level_id = $request->level_id;
+//     public function ubah_simpan($id, Request $request)
+//     {
+//     $user = UserModel::find($id);
 
-    $user->save();
+//     $user->username = $request->username;
+//     $user->nama_lengkap = $request->nama_lengkap;
+//     $user->password = Hash::make('$request->password');
+//     $user->level_id = $request->level_id;
 
-    return redirect('/user');
-    }
+//     $user->save();
 
-    public function hapus($id)
-{
-    $user = UserModel::find($id);
+//     return redirect('/user');
+//     }
 
-    if (!$user) {
-        return redirect('/user')->with('error', 'User tidak ditemukan!');
-    }
+//     public function hapus($id)
+// {
+//     $user = UserModel::find($id);
 
-    $user->delete();
+//     if (!$user) {
+//         return redirect('/user')->with('error', 'User tidak ditemukan!');
+//     }
 
-    return redirect('/user')->with('success', 'User berhasil dihapus!');
-}
+//     $user->delete();
+
+//     return redirect('/user')->with('success', 'User berhasil dihapus!');
+// }
 
 }
