@@ -10,14 +10,25 @@ class UserController extends Controller
 {
     public function index()
     {
-        $user = UserModel::firstOrCreate(
-            ['username' => 'manager33'],
-            ['nama_lengkap' => 'Manager tiga tiga',
-            'password' => Hash::make('12345'),
-            'level_id' => 2
-        ],
+        // 🔍 Cek jika username 'manager11' sudah ada, jika tidak, buat baru
+        $user = UserModel::updateOrCreate(
+            ['username' => 'manager11'],
+            [
+                'nama_lengkap' => 'Manager11',
+                'password' => Hash::make('12345'),
+                'level_id' => 2,
+            ]
         );
-        $user->save();
-        return view('user', ['data' => $user]);
+
+        // 🔍 Pastikan username baru 'manager12' belum ada sebelum update
+        if (!UserModel::where('username', 'manager12')->exists()) {
+            $user->username = 'manager12';
+            $user->save();
+        }
+
+        // ✅ Cek apakah perubahan terjadi
+        $wasChanged = $user->wasChanged(['nama_lengkap', 'username']);
+
+        return view('user', ['data' => $user, 'wasChanged' => $wasChanged]);
     }
 }
