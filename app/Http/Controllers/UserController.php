@@ -10,25 +10,54 @@ class UserController extends Controller
 {
     public function index()
     {
-        // 🔍 Cek jika username 'manager11' sudah ada, jika tidak, buat baru
-        $user = UserModel::updateOrCreate(
-            ['username' => 'manager11'],
-            [
-                'nama_lengkap' => 'Manager11',
-                'password' => Hash::make('12345'),
-                'level_id' => 2,
-            ]
-        );
-
-        // 🔍 Pastikan username baru 'manager12' belum ada sebelum update
-        if (!UserModel::where('username', 'manager12')->exists()) {
-            $user->username = 'manager12';
-            $user->save();
-        }
-
-        // ✅ Cek apakah perubahan terjadi
-        $wasChanged = $user->wasChanged(['nama_lengkap', 'username']);
-
-        return view('user', ['data' => $user, 'wasChanged' => $wasChanged]);
+        $user = UserModel::all();
+        return view('user', ['data' => $user]);
     }
+
+    public function tambah(){
+        return view('user_tambah');
+    }
+
+    public function tambah_simpan(Request $request){
+        UserModel::create([
+            'username' => $request->username,
+            'nama_lengkap' => $request->nama_lengkap,
+            'password' => Hash::make('$request->password'),
+            'level_id' => $request->level_id
+        ]);
+        return redirect('/user');
+    }
+
+    public function ubah($id){
+        $user = UserModel::find($id);
+        return view('user_ubah', ['data' => $user]);
+    }
+
+    public function ubah_simpan($id, Request $request)
+    {
+    $user = UserModel::find($id);
+
+    $user->username = $request->username;
+    $user->nama_lengkap = $request->nama_lengkap;
+    $user->password = Hash::make('$request->password');
+    $user->level_id = $request->level_id;
+
+    $user->save();
+
+    return redirect('/user');
+    }
+
+    public function hapus($id)
+{
+    $user = UserModel::find($id);
+
+    if (!$user) {
+        return redirect('/user')->with('error', 'User tidak ditemukan!');
+    }
+
+    $user->delete();
+
+    return redirect('/user')->with('success', 'User berhasil dihapus!');
+}
+
 }

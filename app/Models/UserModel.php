@@ -13,4 +13,5 @@ class UserModel extends Model
     protected $primaryKey = 'user_id';
     protected $fillable = ['level_id', 'username', 'nama_lengkap', 'password']; // Tambahkan 'password'
     public $timestamps = true; // Tambahkan ini untuk timestamps otomatis
+
 }
