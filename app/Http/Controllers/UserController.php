@@ -12,15 +12,14 @@ class UserController extends Controller
     {
         // Update data user dengan Eloquent Model
         $data = [
-            'nama_lengkap' => 'Pelanggan Pertama',
-            'updated_at' => now(), // Update updated_at
+            'level_id' => 2,
+            'username' => 'manager_tiga',
+            'nama_lengkap' => 'Manager 3',
+            'password' => Hash::make('12345')
         ];
+        UserModel::create($data);
 
-        UserModel::where('username', 'customer-1')->update($data); // Update data user
-
-        // Coba akses model UserModel
-        $user = UserModel::all(); // Ambil semua data dari tabel m_user
-
+        $user = UserModel::all();
         return view('user', ['data' => $user]);
     }
 }
