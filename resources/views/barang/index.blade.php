@@ -15,7 +15,18 @@
         @if (session('error'))
         <div class="alert alert-danger">{{ session('error') }}</div>
         @endif
-
+        
+        <div class="row mb-3">
+            <div class="col-md-3">
+                <label for="filter_kategori">Filter Kategori:</label>
+                <select id="filter_kategori" class="form-control">
+                    <option value="">- Semua Kategori -</option>
+                    @foreach($kategori as $item)
+                        <option value="{{ $item->id }}">{{ $item->nama_kategori }}</option>
+                    @endforeach
+                </select>
+            </div>
+        </div>
         <table class="table table-bordered table-striped table-hover table-sm" id="table_barang">
             <thead>
                 <tr>
@@ -35,58 +46,31 @@
 @push('js')
 <script>
     $(document).ready(function() {
-        var dataBarang = $('#table_barang').DataTable({
-            serverSide: true,
-            ajax: {
-                "url": "{{ url('barang/list') }}",
-                "dataType": "json",
-                "type": "POST",
-            },
-            columns: [
-                {
-                    data: "DT_RowIndex",
-                    className: "text-center",
-                    orderable: false,
-                    searchable: false
-                },
-                {
-                    data: "nama_barang",
-                    className: "",
-                    orderable: true,
-                    searchable: true
-                },
-                {
-                    data: "deskripsi_barang",
-                    className: "",
-                    orderable: true,
-                    searchable: true
-                },
-                {
-                    data: "harga_barang",
-                    className: "",
-                    orderable: true,
-                    searchable: true
-                },
-                {
-                    data: "nama_kategori",   // Ubah ini
-                    className: "",
-                    orderable: true,
-                    searchable: true
-                },
-                {
-                    data: "nama_supplier",   // Ubah ini
-                    className: "",
-                    orderable: true,
-                    searchable: true
-                },
-                {
-                    data: "aksi",
-                    className: "",
-                    orderable: false,
-                    searchable: false
-                }
-            ]
-        });
+    var dataBarang = $('#table_barang').DataTable({
+        serverSide: true,
+        processing: true,
+        ajax: {
+            url: "{{ url('barang/list') }}",
+            type: "POST",
+            data: function(d) {
+                d.id_kategori = $('#filter_kategori').val();
+            }
+        },
+        columns: [
+            { data: "DT_RowIndex", className: "text-center", orderable: false, searchable: false },
+            { data: "nama_barang", orderable: true, searchable: true },
+            { data: "deskripsi_barang", orderable: true, searchable: true },
+            { data: "harga_barang", orderable: true, searchable: true },
+            { data: "nama_kategori", orderable: true, searchable: true },
+            { data: "nama_supplier", orderable: true, searchable: true },
+            { data: "aksi", orderable: false, searchable: false }
+        ]
+    });
+
+    // Event listener untuk filter
+    $('#filter_kategori').on('change', function() {
+        dataBarang.ajax.reload();
+    });
     });
 </script>
 @endpush
