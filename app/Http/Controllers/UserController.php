@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\LevelModel;
 use App\Models\UserModel;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Database\QueryException;
 use Yajra\DataTables\Facades\DataTables;
 
@@ -187,6 +188,37 @@ public function destroy(string $id)
         return redirect('/user')->with('error', 'Data user gagal dihapus karena masih terdapat tabel lain yang terkait dengan data ini');
     }
 }
+
+public function create_ajax()
+{
+    $level = LevelModel::select('level_id', 'level_nama')->get();
+
+    return view('user.create_ajax')->with('level', $level);
+}
+
+public function store_ajax(Request $request)
+{
+    $validated = $request->validate([
+        'level_id' => 'required|exists:m_level,level_id',
+        'username' => 'required|min:3|max:20|unique:m_user,username',
+        'nama_lengkap' => 'required|min:3|max:100',
+        'password' => 'required|min:6|max:20'
+    ]);
+
+    $user = new UserModel();
+    $user->level_id = $request->level_id;
+    $user->username = $request->username;
+    $user->nama_lengkap = $request->nama_lengkap;
+    $user->password = bcrypt($request->password);
+    $user->save();
+
+    return response()->json([
+        'status' => true,
+        'message' => 'User berhasil ditambahkan'
+    ]);
+    
+}
+
 }
 
     // public function index()
