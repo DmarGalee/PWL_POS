@@ -229,25 +229,34 @@ public function create_ajax()
 
 public function store_ajax(Request $request)
 {
-    $validated = $request->validate([
-        'level_id' => 'required|exists:m_level,level_id',
-        'username' => 'required|min:3|max:20|unique:m_user,username',
-        'nama_lengkap' => 'required|min:3|max:100',
-        'password' => 'required|min:6|max:20'
-    ]);
+    // Cek apakah request berupa AJAX atau JSON
+    if ($request->ajax() || $request->wantsJson()) {
+        $rules = [
+            'level_id' => 'required|integer',
+            'username' => 'required|string|min:3|unique:m_user,username',
+            'nama_lengkap' => 'required|string|max:100',
+            'password' => 'required|min:6',
+        ];
 
-    $user = new UserModel();
-    $user->level_id = $request->level_id;
-    $user->username = $request->username;
-    $user->nama_lengkap = $request->nama_lengkap;
-    $user->password = bcrypt($request->password);
-    $user->save();
+        $validator = Validator::make($request->all(), $rules);
 
-    return response()->json([
-        'status' => true,
-        'message' => 'User berhasil ditambahkan'
-    ]);
-    
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Validasi Gagal',
+                'msgField' => $validator->errors(),
+            ], 422); // Tambahkan kode status 422
+        }
+
+        UserModel::create($request->all());
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Data user berhasil disimpan',
+        ]);
+    }
+
+    return redirect('/'); // Redirect jika request bukan AJAX atau JSON
 }
 public function edit_ajax(string $id)
 {
@@ -258,48 +267,49 @@ public function edit_ajax(string $id)
 }
 
 
-public function update_ajax(Request $request, $id)
-{
-    if (!$request->ajax()) {
-        return response()->json(['status' => false, 'message' => 'Invalid request']);
-    }
-
+public function update_ajax(Request $request, $id){
+    // cek apakah request dari ajax
+    if ($request->ajax() || $request->wantsJson()) {
     $rules = [
-        'level_id' => 'required|integer',
-        'username' => 'required|max:20|unique:m_user,username,'.$id.',user_id',
-        'nama_lengkap' => 'required|max:100',
-        'password' => 'nullable|min:6|max:20'
+    'level_id' => 'required|integer',
+    'username' => 'required|max:20|unique:m_user,username,'.$id.',user_id',
+    'nama_lengkap' => 'required|max:100',
+    'password' => 'nullable|min:6|max:20'
     ];
 
     $validator = Validator::make($request->all(), $rules);
 
     if ($validator->fails()) {
-        return response()->json(['status' => false, 'message' => 'Validasi gagal', 'msgField' => $validator->errors()]);
+        return response()->json([
+        'status' => false, // respon json, true: berhasil, false: gagal
+        'message' => 'Validasi gagal.',
+        'msgField' => $validator->errors() // menunjukkan field mana yang error
+        ]);
+        }
+        $check = UserModel::find($id);
+        if ($check) {
+        if(!$request->filled('password') ){ // jika password tidak diisi, maka hapus dari request
+        $request->request->remove('password');
+        }
+        $check->update($request->all());
+        return response()->json([
+        'status' => true,
+        'message' => 'Data berhasil diupdate'
+        ]);
+        } else{
+        return response()->json([
+        'status' => false,
+        'message' => 'Data tidak ditemukan'
+        ]);
+        }
+        
+        }
+        return redirect('/');
     }
-
-    $user = UserModel::find($id);
-    if (!$user) {
-        return response()->json(['status' => false, 'message' => 'User tidak ditemukan']);
-    }
-
-    // Update data kecuali password
-    $user->update([
-        'level_id' => $request->level_id,
-        'username' => $request->username,
-        'nama_lengkap' => $request->nama_lengkap,
-    ]);
-
-    // Update password jika diisi
-    if (!empty($request->password)) {
-        $user->update(['password' => bcrypt($request->password)]);
-    }
-
-    return response()->json(['status' => true, 'message' => 'Data berhasil diperbarui']);
+        
 }
 
 
-
-}
 
     // public function index()
     // {
