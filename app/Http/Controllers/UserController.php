@@ -212,11 +212,10 @@ public function destroy(string $id)
     }
 
     try {
-        UserModel::destroy($id); // Hapus data user
-        return redirect('/user')->with('success', 'Data user berhasil dihapus');
-    } catch (\Illuminate\Database\QueryException $e) {
-        // jika terjadi error ketika menghapus data, redirect kembali ke halaman dengan membawa pesan error
-        return redirect('/user')->with('error', 'Data user gagal dihapus karena masih terdapat tabel lain yang terkait dengan data ini');
+        UserModel::destroy($id);
+        return redirect('/user')->with('success', 'Data level berhasil dihapus');
+    } catch (QueryException $e) {
+        return redirect('/user')->with('error', 'Data level gagal dihapus karena masih terdapat tabel lain yang terkait dengan data ini');
     }
 }
 
@@ -306,7 +305,41 @@ public function update_ajax(Request $request, $id){
         }
         return redirect('/');
     }
-        
+
+    public function confirm_ajax(string $id){
+        $user = UserModel::find($id);
+
+        return view('user.confirm_ajax', ['user' => $user]);
+    }
+
+    public function delete_ajax(Request $request, $id)
+{
+    // Cek apakah request dari AJAX atau JSON
+    if ($request->ajax() || $request->wantsJson()) {
+        try {
+            $user = UserModel::find($id);
+            if ($user) {
+                $user->delete();
+                return response()->json([
+                    'status' => true,
+                    'message' => 'Data berhasil dihapus'
+                ]);
+            } else {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Data tidak ditemukan'
+                ]);
+            } 
+        } catch (\Illuminate\Database\QueryException ) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Data gagal dihapus karena masih terdapat tabel lain yang terkait dengan data ini'
+            ]);
+        }
+    }
+
+    return redirect('/');
+}
 }
 
 
