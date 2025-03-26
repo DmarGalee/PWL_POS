@@ -4,10 +4,15 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Hash;
 use App\Models\UserModel;
+
 
 class AuthController extends Controller
 {
+
+    
     public function login()
     {
         if (Auth::check()) { // Jika sudah login, redirect ke halaman home
