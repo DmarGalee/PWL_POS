@@ -43,6 +43,10 @@
                     </div>
                 </div>
             </form>
+              <!-- Tambahkan Link Register di Sini -->
+    <p class="mb-1">
+        <a href="{{ route('register') }}">Register a new membership</a>
+    </p>
         </div>
     </div>
 </div>

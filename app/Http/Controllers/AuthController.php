@@ -12,7 +12,33 @@ use App\Models\UserModel;
 class AuthController extends Controller
 {
 
-    
+    public function register()
+    {
+        return view('auth.register'); // Menampilkan form registrasi
+    }
+
+    public function postRegister(Request $request)
+    {
+        // Validasi input (lebih ringkas dengan validate())
+        $request->validate([
+            'username' => 'required|string|max:20|unique:m_user,username',
+            'nama_lengkap' => 'required|string|max:100',
+            'level_id' => 'required|integer',
+            'password' => 'required|string|min:6|confirmed',
+        ]);
+
+        // Simpan user ke database
+        UserModel::create([
+            'username' => $request->username,
+            'nama_lengkap' => $request->nama_lengkap,
+            'level_id' => $request->level_id,
+            'password' => Hash::make($request->password), // Hash password dengan Hash::make()
+        ]);
+
+        // Redirect ke login dengan pesan sukses
+        return redirect()->route('login')->with('success', 'Registrasi berhasil! Silakan login.');
+    }
+
     public function login()
     {
         if (Auth::check()) { // Jika sudah login, redirect ke halaman home
