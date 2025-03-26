@@ -244,7 +244,7 @@ public function store_ajax(Request $request)
                 'status' => false,
                 'message' => 'Validasi Gagal',
                 'msgField' => $validator->errors(),
-            ], 422); // Tambahkan kode status 422
+            ], 422);
         }
 
         UserModel::create($request->all());
@@ -255,7 +255,7 @@ public function store_ajax(Request $request)
         ]);
     }
 
-    return redirect('/'); // Redirect jika request bukan AJAX atau JSON
+    return redirect('/');
 }
 public function edit_ajax(string $id)
 {

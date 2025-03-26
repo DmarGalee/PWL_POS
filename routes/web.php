@@ -2,10 +2,26 @@
 use App\Http\Controllers\BarangController;
 use App\Http\Controllers\LevelController;
 use App\Http\Controllers\KategoriController;
+use App\Http\Controllers\AuthController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\WelcomeController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
+
+
+Route::pattern('id', '[0-9]+'); // Parameter ID harus angka
+
+// Login Routes
+Route::get('login', [AuthController::class, 'login'])->name('login');
+Route::post('login', [AuthController::class, 'postlogin']);
+
+// Logout harus menggunakan POST, bukan GET
+Route::post('logout', [AuthController::class, 'logout'])->name('logout')->middleware('auth');
+
+// Routes yang membutuhkan autentikasi
+Route::middleware(['auth'])->group(function () {
+    // Tambahkan route lain yang memerlukan login di sini
+});
 
 Route::get('/', [WelcomeController::class, 'index']);
 
