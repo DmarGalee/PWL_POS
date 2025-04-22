@@ -4,6 +4,7 @@
  
  use Illuminate\Database\Eloquent\Factories\HasFactory;
  use Illuminate\Database\Eloquent\Model;
+ use App\Models\StokModel;
  
  class BarangModel extends Model
  {
@@ -16,9 +17,10 @@
          'deskripsi_barang',
          'harga_barang',
          'id_kategori',
-         'id_supplier'
+         'id_supplier',
+         'created_at'
      ];
-     public $timestamps = true;
+     public $timestamps = false;
  
      public function kategori()
      {

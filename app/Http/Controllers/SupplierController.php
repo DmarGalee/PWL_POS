@@ -7,6 +7,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Database\QueryException;
 use Yajra\DataTables\Facades\DataTables;
+use PhpOffice\PhpSpreadsheet\IOFactory;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class SupplierController extends Controller
 {
@@ -294,4 +296,123 @@ class SupplierController extends Controller
 
         return redirect('/');
     }
+
+    public function import()
+{
+    return view('supplier.import'); // Pastikan view ini ada
+}
+
+public function import_ajax(Request $request)
+{
+    if ($request->ajax() || $request->wantsJson()) {
+        $rules = [
+            'file_supplier' => ['required', 'mimes:xlsx', 'max:1024']
+        ];
+        $validator = Validator::make($request->all(), $rules);
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Validasi Gagal',
+                'msgField' => $validator->errors()
+            ]);
+        }
+
+        $file = $request->file('file_supplier');
+        $reader = IOFactory::createReader('Xlsx');
+        $reader->setReadDataOnly(true);
+        $spreadsheet = $reader->load($file->getRealPath());
+        $sheet = $spreadsheet->getActiveSheet();
+        $data = $sheet->toArray(null, false, true, true);
+
+        $insert = [];
+
+        if (count($data) > 1) {
+            foreach ($data as $baris => $value) {
+                if ($baris > 1) {
+                    $insert[] = [
+                        'nama_supplier' => $value['B'] ?? null,
+                        'alamat_supplier' => $value['C'] ?? null,
+                        'telepon_supplier' => $value['D'] ?? null,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ];
+                }
+            }
+
+            if (count($insert) > 0) {
+                SupplierModel::insert($insert);
+            }
+
+            return response()->json([
+                'status' => true,
+                'message' => 'Data supplier berhasil diimport'
+            ]);
+        } else {
+            return response()->json([
+                'status' => false,
+                'message' => 'Tidak ada data yang diimport'
+            ]);
+        }
+    }
+
+    return redirect('/');
+}
+
+public function export_excel()
+{
+    $supplier = SupplierModel::select("id", "nama_supplier", "alamat_supplier", "telepon_supplier")
+        ->orderBy("id")
+        ->get();
+
+    $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+    $sheet = $spreadsheet->getActiveSheet();
+
+    $sheet->setCellValue('A1', 'No');
+    $sheet->setCellValue('B1', 'Nama Supplier');
+    $sheet->setCellValue('C1', 'Alamat');
+    $sheet->setCellValue('D1', 'Telepon');
+
+    $no = 1;
+    $baris = 2;
+    foreach ($supplier as $value) {
+        $sheet->setCellValue('A' . $baris, $no++);
+        $sheet->setCellValue('B' . $baris, $value->nama_supplier);
+        $sheet->setCellValue('C' . $baris, $value->alamat_supplier);
+        $sheet->setCellValue('D' . $baris, $value->telepon_supplier);
+        $baris++;
+    }
+
+    foreach (range('A', 'D') as $columnID) {
+        $sheet->getColumnDimension($columnID)->setAutoSize(true);
+    }
+
+    $sheet->setTitle('Data Supplier');
+    $writer = IOFactory::createWriter($spreadsheet, 'Xlsx');
+    $filename = 'Data Supplier ' . date('Y-m-d H-i-s') . '.xlsx';
+
+    header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    header('Content-Disposition: attachment;filename="' . $filename . '"');
+    header('Cache-Control: max-age=0');
+    header('Expires: Mon, 26 Jul 1997 05:00:00 GMT');
+    header('Last-Modified: ' . gmdate('D, d M Y H:i:s') . ' GMT');
+    header('Cache-Control: cache, must-revalidate');
+    header('Pragma: public');
+
+    $writer->save('php://output');
+    exit;
+}
+
+public function export_pdf()
+{
+    $supplier = SupplierModel::select('id', 'nama_supplier', 'alamat_supplier', 'telepon_supplier')
+        ->orderBy('id')
+        ->get();
+
+    $pdf = Pdf::loadView('supplier.export_pdf', ['supplier' => $supplier]);
+    $pdf->setPaper('a4', 'portrait');
+    $pdf->setOption('isRemoteEnabled', true);
+    $pdf->render();
+
+    return $pdf->stream('Data Supplier ' . date('Y-m-d H:i:s') . '.pdf');
+}
 }

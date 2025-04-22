@@ -31,40 +31,42 @@
 </a>
 </li>
 <li class="nav-item">
-<a href="{{ url('/user') }}" class="nav-link {{ ($activeMenu == 'user')?
-'active' : '' }}">
+<a href="{{ url('/user') }}" class="nav-link {{ ($activeMenu == 'user')? 'active' : '' }}">
 <i class="nav-icon far fa-user"></i>
 <p>Data User</p>
 </a>
 </li>
 <li class="nav-header">Data Barang</li>
 <li class="nav-item">
-<a href="{{ url('/kategori') }}" class="nav-link {{ ($activeMenu ==
-'kategori')? 'active' : '' }} ">
+<a href="{{ url('/kategori') }}" class="nav-link {{ ($activeMenu =='kategori')? 'active' : '' }} ">
 <i class="nav-icon far fa-bookmark"></i>
 <p>Kategori Barang</p>
 </a>
 </li>
 <li class="nav-item">
-<a href="{{ url('/barang') }}" class="nav-link {{ ($activeMenu ==
-'barang')? 'active' : '' }} ">
+<a href="{{ url('/barang') }}" class="nav-link {{ ($activeMenu == 'barang')? 'active' : '' }} ">
 <i class="nav-icon far fa-list-alt"></i>
 <p>Data Barang</p>
 </a>
 </li>
 <li class="nav-header">Data Transaksi</li>
 <li class="nav-item">
-<a href="{{ url('/supplier') }}" class="nav-link {{ ($activeMenu == 'stok')?
-'active' : '' }} ">
+<a href="{{ url('/supplier') }}" class="nav-link {{ ($activeMenu == 'supplier')? 'active' : '' }} ">
 <i class="nav-icon fas fa-cubes"></i>
 <p>Supplier </p>
 </a>
 </li>
 <li class="nav-item">
-<a href="{{ url('/wew') }}" class="nav-link {{ ($activeMenu ==
-'penjualan')? 'active' : '' }} ">
+<a href="{{ url('/penjualan') }}" class="nav-link {{ ($activeMenu == 'penjualan')? 'active' : '' }} ">
 <i class="nav-icon fas fa-cash-register"></i>
 <p>Transaksi Penjualan</p>
+</a>
+</li>
+<li class="nav-header">Data Pasokan</li>
+<li class="nav-item">
+<a href="{{ url('/stok') }}" class="nav-link {{ ($activeMenu == 'stok')? 'active' : '' }} ">
+<i class="nav-icon fas fa-cubes"></i>
+<p>Stock </p>
 </a>
 </li>
 </ul>

@@ -7,8 +7,11 @@
  use App\Models\KategoriModel;
  use App\Models\SupplierModel;
  use Illuminate\Http\Request;
+ use Barryvdh\DomPDF\Facade\Pdf;
+ use Illuminate\Support\Facades\Hash;
  use Illuminate\Database\QueryException;
  use Illuminate\Support\Facades\Validator;
+ use PhpOffice\PhpSpreadsheet\IOFactory;
  use Yajra\DataTables\Facades\DataTables;
  
  class BarangController extends Controller
@@ -47,40 +50,44 @@
          ]);
      }
  
-     public function list(Request $request)
-     {
-         $barang = BarangModel::with('kategori', 'supplier')
-             ->select(
-                 'm_barang.id',
-                 'm_barang.nama_barang',
-                 'm_barang.deskripsi_barang',
-                 'm_barang.harga_barang',
-                 'm_barang.id_kategori',
-                 'm_barang.id_supplier'
-             );
-     
-         // Filter berdasarkan kategori jika ada
-         if ($request->id_kategori) {
-             $barang->where('id_kategori', $request->id_kategori);
-         }
-     
-         return DataTables::of($barang)
-             ->addIndexColumn()
-             ->addColumn('nama_kategori', function ($barang) {
-                 return optional($barang->kategori)->nama_kategori;
-             })
-             ->addColumn('nama_supplier', function ($barang) {
-                 return optional($barang->supplier)->nama_supplier;
-             })
-             ->addColumn('aksi', function ($barang) {
-                 $btn = '<button onclick="modalAction(\'' . url('/barang/' . $barang->id . '/show_ajax') . '\')" class="btn btn-info btn-sm">Detail</button> ';
-                 $btn .= '<button onclick="modalAction(\'' . url('/barang/' . $barang->id . '/edit_ajax') . '\')" class="btn btn-warning btn-sm">Edit</button> ';
-                 $btn .= '<button onclick="modalAction(\'' . url('/barang/' . $barang->id . '/delete_ajax') . '\')" class="btn btn-danger btn-sm">Hapus</button> ';
-                 return $btn;
-             })
-             ->rawColumns(['aksi'])
-             ->make(true);
-     }
+    public function list(Request $request)
+{
+    // Start the query for Barang with eager loading of relationships
+    $barang = BarangModel::with('kategori', 'supplier')
+        ->select(
+            'm_barang.id',
+            'm_barang.nama_barang',
+            'm_barang.deskripsi_barang',
+            'm_barang.harga_barang',
+            'm_barang.id_kategori',
+            'm_barang.id_supplier'
+        );
+
+    // Filter by category if the filter_kategori parameter is provided
+    if ($request->has('filter_kategori') && $request->filter_kategori) {
+        $barang->where('id_kategori', $request->filter_kategori);
+    }
+
+    // Use DataTables to return the processed data
+    return DataTables::of($barang)
+        ->addIndexColumn() // Adds an index column
+        ->addColumn('nama_kategori', function ($barang) {
+            return optional($barang->kategori)->nama_kategori; // Safely access the category name
+        })
+        ->addColumn('nama_supplier', function ($barang) {
+            return optional($barang->supplier)->nama_supplier; // Safely access the supplier name
+        })
+        ->addColumn('aksi', function ($barang) {
+            // Buttons for actions: detail, edit, delete
+            $btn = '<button onclick="modalAction(\'' . url('/barang/' . $barang->id . '/show_ajax') . '\')" class="btn btn-info btn-sm">Detail</button> ';
+            $btn .= '<button onclick="modalAction(\'' . url('/barang/' . $barang->id . '/edit_ajax') . '\')" class="btn btn-warning btn-sm">Edit</button> ';
+            $btn .= '<button onclick="modalAction(\'' . url('/barang/' . $barang->id . '/delete_ajax') . '\')" class="btn btn-danger btn-sm">Hapus</button> ';
+            return $btn;
+        })
+        ->rawColumns(['aksi']) // Ensure HTML in the action column is rendered
+        ->make(true); // Return the DataTables response
+}
+
      
  
      public function create()
@@ -305,4 +312,139 @@
 
         return redirect('/');
     }
- }
+
+    public function import()
+    {
+    return view('barang.import');
+    }
+
+    public function import_ajax(Request $request)
+{
+    if ($request->ajax() || $request->wantsJson()) {
+        $rules = [
+            // validasi file harus xls atau xlsx, max 1MB
+            'file_barang' => ['required', 'mimes:xlsx', 'max:1024']
+        ];
+        $validator = Validator::make($request->all(), $rules);
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Validasi Gagal',
+                'msgField' => $validator->errors()
+            ]);
+        }
+        $file = $request->file('file_barang'); // ambil file dari request
+        $reader = IOFactory::createReader('Xlsx'); // load reader file excel
+        $reader->setReadDataOnly(true); // hanya membaca data
+        $spreadsheet = $reader->load($file->getRealPath()); // load file excel
+        $sheet = $spreadsheet->getActiveSheet(); // ambil sheet yang aktif
+        $data = $sheet->toArray(null, false, true, true); // ambil data excel
+        $insert = [];
+
+        if (count($data) > 1) { // jika data lebih dari 1 baris
+            foreach ($data as $baris => $value) {
+                if ($baris > 1) {  // Skip header (baris 1)
+                    $insert[] = [
+                        'nama_barang' => $value['B'] ?? null,  // Kolom B = Nama Barang
+                        'deskripsi_barang' => $value['C'] ?? null,  // Kolom C = Deskripsi
+                        'harga_barang' => $value['D'] ?? 0,  // Kolom D = Harga (default 0 jika kosong)
+                        'id_kategori' => $value['E'] ?? null,  // Kolom E = ID Kategori
+                        'id_supplier' => $value['F'] ?? null,  // Kolom F = ID Supplier
+                        'created_at' => now(),
+                    ];
+                }
+            }
+            dd($insert);  // Tambahkan ini untuk melihat isi array $insert sebelum dimasukkan ke database
+            if (count($insert) > 0) {
+                // insert data ke database, jika data sudah ada, maka diabaikan
+                BarangModel::insert($insert);
+            }
+            return response()->json([
+                'status' => true,
+                'message' => 'Data berhasil diimport'
+            ]);
+        } else {
+            return response()->json([
+                'status' => false,
+                'message' => 'Tidak ada data yang diimport'
+            ]);
+        }
+    }
+    return redirect('/');
+}
+
+public function export_excel()
+{
+    // 1. Ambil data dari database
+    $barang = BarangModel::select("id", "nama_barang", "deskripsi_barang", "harga_barang", "id_kategori", "id_supplier")
+        ->orderBy("id_kategori")
+        ->with("kategori", "supplier")
+        ->get();
+
+    // 2. Inisialisasi pengaturan awal untuk file Excel (contoh menggunakan PhpSpreadsheet)
+    $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+    $sheet = $spreadsheet->getActiveSheet();
+    $sheet->setCellValue('A1', 'No');
+    $sheet->setCellValue('B1', 'Nama Barang');
+    $sheet->setCellValue('C1', 'Deskripsi');
+    $sheet->setCellValue('D1', 'Harga');
+    $sheet->setCellValue('E1', 'ID Kategori');
+    $sheet->setCellValue('F1', 'ID Supplier');
+    $sheet->setCellValue('G1', 'Nama Kategori'); // Header untuk kolom Nama Kategori
+
+    // 3. Isi data ke dalam sheet Excel
+    $no = 1;
+    $baris = 2;
+
+    foreach ($barang as $key => $value) {
+        $sheet->setCellValue('A' . $baris, $no);
+        $sheet->setCellValue('B' . $baris, $value->nama_barang);
+        $sheet->setCellValue('C' . $baris, $value->deskripsi_barang);
+        $sheet->setCellValue('D' . $baris, $value->harga_barang);
+        $sheet->setCellValue('E' . $baris, $value->id_kategori);
+        $sheet->setCellValue('F' . $baris, $value->id_supplier);
+        $sheet->setCellValue('G' . $baris, $value->kategori->nama_kategori); // Isi Nama Kategori
+
+        $baris++;
+        $no++;
+    }
+
+    foreach(range('A','F') as $columnID) {
+        $sheet->getColumnDimension($columnID)->setAutoSize(true);
+
+    }
+    $sheet->setTitle('Data Barang');  // set title sheet
+    $writer = IOFactory::createWriter($spreadsheet, 'Xlsx');
+    $filename = 'Data Barang ' . date('Y-m-d H:i:s') . '.xlsx';
+
+    header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    header('Content-Disposition: attachment;filename="' . $filename . '"');
+    header('Cache-Control: max-age=0');
+    header('Cache-Control: max-age=1');
+    header('Expires: Mon, 26 Jul 1997 05:00:00 GMT');
+    header('Last-Modified: ' . gmdate('D, d M Y H:i:s') . ' GMT');
+    header('Cache-Control: cache, must-revalidate');
+    header('Pragma: public');
+
+    $writer->save('php://output');
+    exit;
+}
+
+public function export_pdf()
+{
+    // Ambil data barang yang akan di-export
+    $barang = BarangModel::select('id', 'nama_barang', 'deskripsi_barang', 'harga_barang', 'id_kategori', 'id_supplier')
+        ->orderBy('id_kategori')
+        ->orderBy('id') // Diurutkan berdasarkan ID barang
+        ->with('kategori', 'supplier') // Memuat relasi kategori dan supplier
+        ->get();
+
+    // use Barryvdh\DomPDF\Facade\Pdf;  // Pastikan ini tidak di-comment
+    $pdf = Pdf::loadView('barang.export_pdf', ['barang' => $barang]);
+    $pdf->setPaper('a4', 'portrait');  // Set ukuran kertas dan orientasi
+    $pdf->setOption('isRemoteEnabled', true); // Set true jika ada gambar dari URL
+    $pdf->render();
+    return $pdf->stream('Data Barang ' . date('Y-m-d H:i:s') . '.pdf');
+}
+
+} 
